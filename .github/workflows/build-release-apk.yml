@@ -1,10 +1,10 @@
-name: Build Release APK
+name: Build Release APK with Logs
 
 on:
   push:
     branches:
-      - main # Build only on pushes to the main branch
-  workflow_dispatch: # Allows manual triggering of the workflow
+      - main
+  workflow_dispatch:
 
 jobs:
   build-release-apk:
@@ -12,28 +12,48 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout code
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      # Step 2: Setup Flutter (Explicit Version)
+      - name: Log Starting Build Process
+        run: echo "Starting the Flutter release APK build process"
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: 3.27.0 # Explicitly specify the Flutter version
+          flutter-version: 3.27.0
           architecture: x64
 
-      # Step 3: Install dependencies
+      - name: Log Flutter Version
+        run: flutter --version
+
       - name: Install Dependencies
         run: flutter pub get
 
-      # Step 4: Build release APK
-      - name: Build APK
-        run: flutter build apk --release
+      - name: Check Code Formatting
+        run: flutter format --set-exit-if-changed .
 
-      # Step 5: Upload APK as artifact
-      - name: Upload APK
+      - name: Analyze Code
+        run: flutter analyze
+
+      - name: Run Tests
+        run: flutter test
+
+      - name: Build APK
+        run: |
+          echo "Building the release APK..."
+          flutter build apk --release
+
+      - name: Upload APK as Artifact
         uses: actions/upload-artifact@v3
         with:
           name: release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Notify Build Success
+        if: success()
+        run: echo "Build completed successfully. APK is available for download."
+
+      - name: Notify Build Failure
+        if: failure()
+        run: echo "Build failed. Check logs for errors."
